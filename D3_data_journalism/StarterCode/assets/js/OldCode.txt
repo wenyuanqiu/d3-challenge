@@ -1,0 +1,120 @@
+// @TODO: YOUR CODE HERE!
+
+// Set Size of Chart 
+var svgWidth = 960;
+var svgHeight = 500;
+var margin = {
+  top: 20,
+  right: 40,
+  bottom: 80,
+  left: 100
+};
+var width = svgWidth - margin.left - margin.right;
+var height = svgHeight - margin.top - margin.bottom;
+
+// Create an Svg Wrapper
+var svg = d3.select("#scatter")
+  .append("svg")
+  .attr("width", svgWidth)
+  .attr("height", svgHeight);
+
+// Append an SVG Group
+var chartGroup = svg.append("g")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`)
+
+// Retrieve Data
+d3.csv("assets/data/data.csv").then(function (health_data, err) {
+  if (err) throw err;
+
+  //For Each Data
+  health_data.forEach(function (data) {
+    // Convert Data Properties To Numbers
+    data.abbr = data.abbr
+    data.income = +data.income
+    data.smokes = +data.smokes
+  });
+
+  //Set Scales
+  var xLinearScale = d3.scaleLinear()
+    .domain([d3.min(health_data, d => d.income), d3.max(health_data, d => d.income)])
+    .range([0, width]);
+
+  var yLinearScale = d3.scaleLinear()
+    .domain([d3.min(health_data, d => d.smokes), d3.max(health_data, d => d.smokes)])
+    .range([height, 0]);
+
+  //Create Axis Functions
+  var bottomAxis = d3.axisBottom(xLinearScale);
+  var leftAxis = d3.axisLeft(yLinearScale);
+
+  //Append Axes to Chart
+  chartGroup.append("g")
+    .attr("transform", `translate(0, ${height})`)
+    .call(bottomAxis);
+  chartGroup.append("g")
+    .call(leftAxis);
+
+  //Create Circles Group
+  var circlesGroup = chartGroup.selectAll("circle")
+    .data(health_data)
+    .enter();
+
+  //Add Circles 
+  circlesGroup
+    .append("circle")
+    .attr("cx", d => xLinearScale(d.income))
+    .attr("cy", d => yLinearScale(d.smokes))
+    .attr("r", "30")
+    .attr("fill", "pink")
+    .attr("opacity", ".5");
+
+  //Add Text to Circles
+  circlesGroup
+    .append("text")
+    .attr("dx", d => xLinearScale(d.income))
+    .attr("dy", d => yLinearScale(d.smokes))
+    .attr("transform", `translate(-10, 5)`)
+    .text(d => d.abbr);
+
+  //Initialize Tool Tip
+  var toolTip = d3.tip()
+    .attr("class", "toolTip")
+    .offset([0, 0])
+    .html(function (d) {
+      return (`${d.abbr} <br> ${d.income} <br> ${d.smokes}`)
+    });
+  chartGroup.call(toolTip);
+  
+  //Creat Event Listeners For Display Data
+  circlesGroup.selectAll("circle")
+    .on("click", function(data) {toolTip.show(data, this);})
+    .on("mouseout", function(data, index) {toolTip.hide(data);});
+
+  //Create Event Listeners For Display Data Color
+  circlesGroup.selectAll("circle")
+    .on("mouseover", function() {d3.select(this)
+    .attr("fill", "red");
+      })
+  circlesGroup.selectAll("circle")
+    .on("mouseout", function() {d3.select(this)
+    .attr("fill", "pink")
+    .attr("opacity", ".5");
+      })     
+
+  // Create axes labels
+  chartGroup.append("text")
+  .attr("transform", "rotate(-90)")
+  .attr("y", 0 - margin.left + 40)
+  .attr("x", 0 - (height / 2))
+  .attr("dy", "1em")
+  .attr("class", "axisText")
+  .text("Smokes");
+
+  chartGroup.append("text")
+  .attr("transform", `translate(${width / 2}, ${height + margin.top + 30})`)
+  .attr("class", "axisText")
+  .text("Income");
+
+  console.log(health_data);
+
+});
